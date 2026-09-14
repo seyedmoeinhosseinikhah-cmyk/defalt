@@ -1,20 +1,67 @@
 # CodePilot AI 🚀
 
-A production-oriented starting point for an AI-powered Python developer workspace.
+A production-oriented Python developer workspace with a deterministic, AI-optional static analyzer.
+
+## Heavy Python Analyzer — no AI required
+
+CodePilot now includes a dedicated heavy-file analyzer designed for large Python source files. It **never imports or executes the uploaded code**. Analysis is based on Python's AST and tokenizer, so results are deterministic and work without an API key or AI provider.
+
+### What it detects
+
+- Syntax errors
+- File size, line counts, code/comment/blank lines and token count
+- AST node count, function/class/import counts
+- Per-function complexity, branches, returns and nesting depth
+- Very long functions and classes
+- Too many parameters
+- Mutable default arguments
+- `eval()` / `exec()`
+- shell execution through `os.system()` and `subprocess(..., shell=True)`
+- unsafe `pickle` / `marshal` deserialization
+- unsafe `yaml.load()` usage
+- disabled TLS verification in `requests`
+- weak MD5/SHA-1 hashing indicators
+- hard-coded secret-like values
+- wildcard imports and possible unused imports
+- bare `except`
+- `assert` used in runtime code
+- built-in name shadowing
+- long lines and trailing whitespace
+- TODO/FIXME maintenance markers
+
+### API
+
+`POST /api/analyze/heavy`
+
+```json
+{
+  "filename": "big_project.py",
+  "code": "print('hello')"
+}
+```
+
+`POST /api/analyze/file` accepts a UTF-8 `.py` upload. The current source limit is **25 MB**.
+
+`GET /api/health` reports whether the heavy analyzer is enabled and confirms that AI is not required for static analysis.
+
+## Important limitation
+
+This is comprehensive **static** analysis, not a proof that a program is bug-free. Dynamic behavior, runtime-only errors, external services and semantic intent cannot be completely proven from a single source file without executing or instrumenting the program.
 
 ## Current MVP
+
 - FastAPI backend
-- Real Python AST analysis
-- Security-oriented detection for `eval` / `exec`
+- Basic and heavy Python AST analysis
+- Deterministic security-oriented detection
 - Syntax error detection
-- Function-size heuristic
-- 0–100 code quality score
+- 0–100 quality score
 - AI provider abstraction with a safe local mock
-- ZIP upload validation and 10 MB limit
-- Responsive developer dashboard
+- ZIP upload validation and 10 MB project limit
 - Pytest coverage for analyzer behavior
+- Large-source regression test with 1,200 generated functions
 
 ## Run locally
+
 ```bash
 python -m venv .venv
 # Windows: .venv\\Scripts\\activate
@@ -23,17 +70,9 @@ pip install -r requirements.txt
 pytest
 uvicorn app.main:app --reload
 ```
+
 Open `http://127.0.0.1:8000`.
 
-## Roadmap
-1. PostgreSQL + SQLAlchemy persistence
-2. Authentication and project history
-3. Safe ZIP extraction with path traversal protection
-4. Ruff/Radon integration
-5. Real AI providers via server-side API keys
-6. Test generation and documentation generation
-7. Project-wide scanner and analytics dashboard
-8. Docker + CI
-
 ## Architecture
-`app/main.py` exposes the API, `app/analyzers` contains deterministic code analysis, and `app/ai` isolates model providers so external AI vendors can be swapped without changing the API layer.
+
+`app/main.py` exposes the API, `app/analyzers` contains deterministic code analysis, and `app/ai` isolates optional model providers so external AI vendors can be swapped without changing the API layer.
