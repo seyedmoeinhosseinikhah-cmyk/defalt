@@ -1,0 +1,40 @@
+name: Build Heavy Scanner Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag, for example v1.0.0'
+        required: true
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: codepilot-heavy-scanner
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Generate 15K+ fixture
+        run: python examples/generate_heavy_file.py
+      - name: Run tests
+        run: |
+          python -m pip install -r requirements.txt
+          PYTHONPATH=. pytest -q
+      - name: Package release
+        run: |
+          tar -czf codepilot-heavy-scanner-${{ inputs.tag }}.tar.gz app examples tests requirements.txt README.md
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag }}
+          name: CodePilot Heavy Scanner ${{ inputs.tag }}
+          generate_release_notes: true
+          files: codepilot-heavy-scanner/codepilot-heavy-scanner-${{ inputs.tag }}.tar.gz
